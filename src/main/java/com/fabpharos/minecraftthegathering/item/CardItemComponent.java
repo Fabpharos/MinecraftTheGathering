@@ -19,6 +19,7 @@ import net.minecraft.world.item.component.TooltipProvider;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -154,8 +155,45 @@ public class CardItemComponent implements TooltipProvider {
             if(!power.isBlank() && !toughness.isBlank())
                 consumer.accept(Component.literal(power+"/"+toughness));
         } else {
-            consumer.accept(Component.translatable("minecraftthegathering.card_item_message"));
+            consumer.accept(Component.translatable("tooltip.minecraftthegathering.card_item_message"));
         }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        } else {
+            boolean b = false;
+            if(obj instanceof CardItemComponent itemComponent) {
+                b = Objects.equals(cardName, itemComponent.cardName)
+                        && Objects.equals(manaCost, itemComponent.manaCost)
+                        && Objects.equals(typeLine, itemComponent.typeLine)
+                        && Objects.equals(cardText, itemComponent.cardText)
+                        && Objects.equals(power, itemComponent.power)
+                        && Objects.equals(toughness, itemComponent.toughness)
+                        && Objects.equals(loyalty, itemComponent.loyalty)
+                        && Objects.equals(image, itemComponent.image)
+                        && Objects.equals(color, itemComponent.color)
+                        && Objects.equals(foil, itemComponent.foil);
+            }
+            return b;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        int i = this.cardName.hashCode();
+        i = 31*i + this.manaCost.hashCode();
+        i = 31*i + this.typeLine.hashCode();
+        i = 31*i + this.cardText.hashCode();
+        i = 31*i + this.power.hashCode();
+        i = 31*i + this.toughness.hashCode();
+        i = 31*i + this.loyalty.hashCode();
+        i = 31*i + this.image.hashCode();
+        i = 31*i + this.color.hashCode();
+        i = 31*i + (this.foil ? 1:0);
+        return i;
     }
 
     public String getName() {

@@ -8,6 +8,7 @@ import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.TooltipProvider;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class BoosterPackItemComponent implements TooltipProvider {
@@ -33,6 +34,29 @@ public class BoosterPackItemComponent implements TooltipProvider {
         if(contents != null && !contents.isEmpty())
             consumer.accept(Component.literal("Contains " + contents.size() + " cards."));
 
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        } else {
+            boolean b = false;
+            if (obj instanceof BoosterPackItemComponent itemComponent) {
+                b = Objects.equals(this.setCode, itemComponent.setCode) &&
+                        Objects.equals(this.setName, itemComponent.setName) &&
+                        this.opened == itemComponent.opened;
+            }
+            return b;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        int i = this.setCode.hashCode();
+        i = 31*i+this.setName.hashCode();
+        i = 31*i+(this.opened?1:0);
+        return i;
     }
 
     public String getSetCode() {

@@ -1,4 +1,6 @@
 {
+  "item.minecraftthegathering.booster_pack_item": "Booster Pack",
   "item.minecraftthegathering.magic_card_item": "Card",
-  "tab.minecraftthegathering": "Minecraft: The Gathering"
+  "tab.minecraftthegathering": "Minecraft: The Gathering",
+  "tooltip.minecraftthegathering.card_item_message": "Hold shift to view card text"
 }

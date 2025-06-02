@@ -36,4 +36,12 @@ public class CardItem extends Item {
         }
         return super.use(level, player, usedHand);
     }
+
+    @Override
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
+        CardItemComponent component = stack.get(Registration.CARD_ITEM_COMPONENTS.get());
+        if(component != null) {
+            component.addToTooltip(context,tooltipComponents::add, tooltipFlag);
+        }
+    }
 }
