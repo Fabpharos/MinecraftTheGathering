@@ -17,6 +17,7 @@ public class ModLanguageProvider extends LanguageProvider {
 
         //Items
         add(Registration.CARD_ITEM.get(), "Card");
+        add(Registration.BOOSTER_PACK_ITEM.get(), "Booster Pack");
 
         //Tabs
         add("tab.minecraftthegathering", "Minecraft: The Gathering");

@@ -14,6 +14,7 @@ public class ModItemModels extends ItemModelProvider {
     @Override
     protected void registerModels() {
         basicItem(Registration.CARD_ITEM.get());
+        basicItem(Registration.BOOSTER_PACK_ITEM.get());
 
         //withExistingParent(Registration.RAW_MATERIA_BLOCk.getId().getPath(), modLoc("block/raw_materia_block"));
     }

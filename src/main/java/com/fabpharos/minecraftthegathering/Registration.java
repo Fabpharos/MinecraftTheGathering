@@ -1,5 +1,6 @@
 package com.fabpharos.minecraftthegathering;
 
+import com.fabpharos.minecraftthegathering.item.BoosterPackItem;
 import com.fabpharos.minecraftthegathering.item.CardItem;
 import com.fabpharos.minecraftthegathering.item.CardItemComponent;
 import net.minecraft.core.component.DataComponentType;
@@ -29,6 +30,7 @@ public class Registration {
 
     //Items
     public static final DeferredItem<CardItem> CARD_ITEM = ITEMS.register("magic_card_item", (ResourceLocation properties) -> new CardItem());
+    public static final DeferredItem<BoosterPackItem> BOOSTER_PACK_ITEM = ITEMS.register("booster_pack_item", (ResourceLocation properties) -> new BoosterPackItem());
 
     //Creative tab
     public static Supplier<CreativeModeTab> TAB = TABS.register(MODID, () -> CreativeModeTab.builder()
@@ -46,6 +48,12 @@ public class Registration {
             builder -> builder
                     .persistent(CardItemComponent.CODEC)
                     .networkSynchronized(CardItemComponent.STREAM_CODEC)
+    );
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ItemContainerContents>> BOOSTER_PACK_CONTENTS = DATA_COMPONENTS.registerComponentType(
+            "booster_pack_contents",
+            builder -> builder
+                    .persistent(ItemContainerContents.CODEC)
+                    .networkSynchronized(ItemContainerContents.STREAM_CODEC)
     );
 
     public static void init(IEventBus modEventBus) {
