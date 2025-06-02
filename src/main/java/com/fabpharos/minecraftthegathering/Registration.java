@@ -1,13 +1,17 @@
 package com.fabpharos.minecraftthegathering;
 
 import com.fabpharos.minecraftthegathering.item.CardItem;
+import com.fabpharos.minecraftthegathering.item.CardItemComponent;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -35,6 +39,14 @@ public class Registration {
                 output.accept(CARD_ITEM.get());
             })
             .build());
+
+    //Components
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CardItemComponent>> CARD_ITEM_COMPONENTS = DATA_COMPONENTS.registerComponentType(
+            "card_item_components",
+            builder -> builder
+                    .persistent(CardItemComponent.CODEC)
+                    .networkSynchronized(CardItemComponent.STREAM_CODEC)
+    );
 
     public static void init(IEventBus modEventBus) {
         DATA_COMPONENTS.register(modEventBus);

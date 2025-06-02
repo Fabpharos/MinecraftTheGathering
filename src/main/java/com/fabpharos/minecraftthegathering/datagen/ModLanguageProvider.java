@@ -21,14 +21,6 @@ public class ModLanguageProvider extends LanguageProvider {
         //Tabs
         add("tab.minecraftthegathering", "Minecraft: The Gathering");
         //Menu Elements
-        /*
-        add("key.materia.melding", "Melding Menu");
-        add("tooltip.materia.column.top", "┌  %s");
-        add("tooltip.materia.column.middle", "├  %s");
-        add("tooltip.materia.column.bottom", "└  %s");
-        add("tooltip.materia.empty", "Empty");
-        add("info.materia.level", "Level %s");
-        add("info.materia.ap", "AP: %s/%s");
-        */
+        add("tooltip.minecraftthegathering.card_item_message", "Hold shift to view card text");
     }
 }

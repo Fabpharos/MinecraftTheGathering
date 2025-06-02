@@ -1,44 +1,39 @@
 package com.fabpharos.minecraftthegathering.item;
 
+import com.fabpharos.minecraftthegathering.Registration;
+import com.fabpharos.minecraftthegathering.util.RandomCardFetcherThread;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 
 import java.time.format.TextStyle;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 public class CardItem extends Item {
-    public static HashMap<Character, Style> symbolTextFormatting = new HashMap<>();
-    public static HashMap<String, Style> rarityTextFormatting = new HashMap<>();
-
-    static {
-        symbolTextFormatting.put('W', Style.EMPTY.withColor(ChatFormatting.YELLOW));
-        symbolTextFormatting.put('U', Style.EMPTY.withColor(ChatFormatting.BLUE));
-        symbolTextFormatting.put('B', Style.EMPTY.withColor(ChatFormatting.DARK_GRAY));
-        symbolTextFormatting.put('R', Style.EMPTY.withColor(ChatFormatting.DARK_RED));
-        symbolTextFormatting.put('G', Style.EMPTY.withColor(ChatFormatting.DARK_GREEN));
-        symbolTextFormatting.put('C', Style.EMPTY.withColor(ChatFormatting.GRAY));
-        symbolTextFormatting.put('S', Style.EMPTY.withColor(ChatFormatting.WHITE));
-
-        rarityTextFormatting.put("common", Style.EMPTY.withColor(ChatFormatting.WHITE));
-        rarityTextFormatting.put("uncommon", Style.EMPTY.withColor(ChatFormatting.GRAY));
-        rarityTextFormatting.put("rare", Style.EMPTY.withColor(ChatFormatting.YELLOW));
-        rarityTextFormatting.put("mythic", Style.EMPTY.withColor(ChatFormatting.GOLD));
-
-    }
 
     public CardItem() {
-        super(new Item.Properties());
+        super(new Item.Properties().component(Registration.CARD_ITEM_COMPONENTS.get(), CardItemComponent.BLANK));
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> list, TooltipFlag flag) {
-
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand usedHand) {
+        if(!level.isClientSide) {
+            ItemStack itemInHand = player.getItemInHand(usedHand);
+            if(Objects.equals(itemInHand.getComponents().getOrDefault(Registration.CARD_ITEM_COMPONENTS.get(), CardItemComponent.BLANK).getName(), "Blank")) {
+                (new RandomCardFetcherThread(itemInHand)).start();
+                return InteractionResultHolder.success(itemInHand);
+            }
+        }
+        return super.use(level, player, usedHand);
     }
-
-
 }
