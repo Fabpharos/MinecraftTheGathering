@@ -1,0 +1,25 @@
+{
+  "itemGroup.minecraftthegathering": "Minecraft: The Gathering",
+  "block.minecraftthegathering.test_block": "Test Block",
+  "item.minecraftthegathering.test_item": "Test Item",
+  "item.minecraftthegathering.magic_card_item": "Magic Card",
+  "item.minecraftthegathering.booster_pack_item": "Booster Pack",
+  "item.minecraftthegathering.opened_booster_pack_item": "Opened Booster Pack",
+
+  "container.minecraftthegathering.booster_pack": "Booster Pack",
+
+  "tooltip.minecraftthegathering.magic_card_item.no_data": "Use to obtain a random Magic Card",
+
+  "rarity.minecraftthegathering.common": "Common",
+  "rarity.minecraftthegathering.uncommon": "Uncommon",
+  "rarity.minecraftthegathering.rare": "Rare",
+  "rarity.minecraftthegathering.mythic_rare": "Mythic Rare",
+
+  "minecraftthegathering.configuration.title": "Minecraft: The Gathering Configs",
+  "minecraftthegathering.configuration.section.minecraftthegathering.common.toml": "Minecraft: The Gathering Configs",
+  "minecraftthegathering.configuration.section.minecraftthegathering.common.toml.title": "Minecraft: The Gathering Configs",
+  "minecraftthegathering.configuration.items": "Item List",
+  "minecraftthegathering.configuration.logDirtBlock": "Log Dirt Block",
+  "minecraftthegathering.configuration.magicNumberIntroduction": "Magic Number Text",
+  "minecraftthegathering.configuration.magicNumber": "Magic Number"
+}
