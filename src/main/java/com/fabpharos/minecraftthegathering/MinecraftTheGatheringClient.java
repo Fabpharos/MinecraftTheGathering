@@ -1,6 +1,8 @@
 package com.fabpharos.minecraftthegathering;
 
 import com.fabpharos.minecraftthegathering.client.BoosterPackScreen;
+import com.fabpharos.minecraftthegathering.client.CardShredderScreen;
+import com.fabpharos.minecraftthegathering.item.MagicCardFaces;
 
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -9,6 +11,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
@@ -35,5 +38,26 @@ public class MinecraftTheGatheringClient {
     @SubscribeEvent
     static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
         event.register(MinecraftTheGathering.BOOSTER_PACK_MENU.get(), BoosterPackScreen::new);
+        event.register(MinecraftTheGathering.CARD_SHREDDER_MENU.get(), CardShredderScreen::new);
+    }
+
+    // Tints the magic_card_item_overlay model's layer0 (the plain card-art base, magic_card.png) by the
+    // current face's color identity. Only that model uses a real card-art layer0 - the default
+    // (not-yet-revealed / face-down) model's layer0 is the generic magic_card_item icon, which must stay
+    // untinted, so this returns -1 (no tint) whenever that's what's actually showing.
+    @SubscribeEvent
+    static void onRegisterColorHandlers(RegisterColorHandlersEvent.Item event) {
+        event.register((stack, tintIndex) -> {
+            if (tintIndex != 0) {
+                return -1;
+            }
+
+            MagicCardFaces faces = stack.get(MinecraftTheGathering.MAGIC_CARD_DATA.get());
+            if (faces == null || faces.currentFace().isBlank()) {
+                return -1;
+            }
+
+            return 0xFF000000 | faces.currentFace().frameColorRgb();
+        }, MinecraftTheGathering.MAGIC_CARD_ITEM.get());
     }
 }

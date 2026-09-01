@@ -3,10 +3,13 @@ package com.fabpharos.minecraftthegathering.inventory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.fabpharos.minecraftthegathering.MinecraftTheGathering;
+import com.fabpharos.minecraftthegathering.item.BoosterPackSet;
 import com.fabpharos.minecraftthegathering.item.MagicCardData;
+import com.fabpharos.minecraftthegathering.item.MagicCardFaces;
 import com.fabpharos.minecraftthegathering.item.MagicCardItem;
 import com.fabpharos.minecraftthegathering.scryfall.MagicCardPool;
 
@@ -70,25 +73,28 @@ public class BoosterPackMenu extends AbstractContainerMenu {
     }
 
     // Reads the pack's stored cards into a fresh container, generating them from the local card pool on first open:
-    // 11 commons, 3 uncommons, and a final slot that's rare with a 1-in-6 chance of being mythic instead.
+    // 11 commons, 3 uncommons, and a final slot that's rare with a 1-in-6 chance of being mythic instead. A
+    // pack with a set assigned only pulls cards printed in that set; one with no set pulls from the whole pool.
     private static SimpleContainer buildContainer(ItemStack packStack) {
         SimpleContainer container = new SimpleContainer(CONTAINER_SLOTS);
         if (!packStack.has(DataComponents.CONTAINER)) {
+            Optional<UUID> setId = BoosterPackSet.of(packStack).id();
+
             List<ItemStack> cards = new ArrayList<>();
             for (int i = 0; i < 11; i++) {
-                cards.add(randomCardStack(MagicCardData.Rarity.COMMON));
+                cards.add(randomCardStack(MagicCardData.Rarity.COMMON, setId));
             }
             for (int i = 0; i < 3; i++) {
-                cards.add(randomCardStack(MagicCardData.Rarity.UNCOMMON));
+                cards.add(randomCardStack(MagicCardData.Rarity.UNCOMMON, setId));
             }
 
             MagicCardData.Rarity lastRarity = ThreadLocalRandom.current().nextInt(6) == 0
                     ? MagicCardData.Rarity.MYTHIC_RARE
                     : MagicCardData.Rarity.RARE;
-            Optional<MagicCardData> lastCard = MagicCardPool.randomCard(lastRarity);
+            Optional<MagicCardFaces> lastCard = MagicCardPool.randomCard(lastRarity, setId);
             if (lastCard.isEmpty() && lastRarity == MagicCardData.Rarity.MYTHIC_RARE) {
-                // No mythic available locally (rare, but possible) - fall back to a rare card instead.
-                lastCard = MagicCardPool.randomCard(MagicCardData.Rarity.RARE);
+                // No mythic available for this set/pool (rare, but possible) - fall back to a rare card instead.
+                lastCard = MagicCardPool.randomCard(MagicCardData.Rarity.RARE, setId);
             }
             cards.add(lastCard.map(BoosterPackMenu::toCardStack).orElseGet(() -> new ItemStack(MinecraftTheGathering.MAGIC_CARD_ITEM.get())));
 
@@ -99,17 +105,17 @@ public class BoosterPackMenu extends AbstractContainerMenu {
         return container;
     }
 
-    // A random card of the given rarity from the local pool, or a blank (no-data) Magic Card if the pool
-    // isn't loaded yet or has none of that rarity.
-    private static ItemStack randomCardStack(MagicCardData.Rarity rarity) {
-        return MagicCardPool.randomCard(rarity)
+    // A random card of the given rarity (and, if present, set) from the local pool, or a blank (no-data)
+    // Magic Card if the pool isn't loaded yet or has no match.
+    private static ItemStack randomCardStack(MagicCardData.Rarity rarity, Optional<UUID> setId) {
+        return MagicCardPool.randomCard(rarity, setId)
                 .map(BoosterPackMenu::toCardStack)
                 .orElseGet(() -> new ItemStack(MinecraftTheGathering.MAGIC_CARD_ITEM.get()));
     }
 
-    private static ItemStack toCardStack(MagicCardData data) {
+    private static ItemStack toCardStack(MagicCardFaces faces) {
         ItemStack card = new ItemStack(MinecraftTheGathering.MAGIC_CARD_ITEM.get());
-        card.set(MinecraftTheGathering.MAGIC_CARD_DATA.get(), data);
+        MagicCardItem.applyFaces(card, faces);
         return card;
     }
 

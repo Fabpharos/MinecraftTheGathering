@@ -24,10 +24,11 @@ import com.google.gson.JsonSyntaxException;
 
 import com.fabpharos.minecraftthegathering.MinecraftTheGathering;
 import com.fabpharos.minecraftthegathering.item.MagicCardData;
+import com.fabpharos.minecraftthegathering.item.MagicCardFaces;
 
 /**
  * Filters Scryfall's (large, everything-included) bulk card data dump down to a small, rarity-bucketed
- * file containing only the name/text/rarity of booster-legal paper cards - the only data
+ * file containing only the front/back face data of booster-legal paper cards - the only data
  * {@link MagicCardPool} needs to hand out random cards.
  */
 public final class CardPoolBuilder {
@@ -42,7 +43,7 @@ public final class CardPoolBuilder {
      * compact pool file in its place. Call only from a background thread.
      */
     public static boolean buildPoolFile(Path bulkDataFile, Path poolFile) {
-        Map<MagicCardData.Rarity, List<MagicCardData>> buckets = new EnumMap<>(MagicCardData.Rarity.class);
+        Map<MagicCardData.Rarity, List<MagicCardFaces>> buckets = new EnumMap<>(MagicCardData.Rarity.class);
         for (MagicCardData.Rarity rarity : MagicCardData.Rarity.values()) {
             buckets.put(rarity, new ArrayList<>());
         }
@@ -60,7 +61,7 @@ public final class CardPoolBuilder {
                     try {
                         JsonObject card = JsonParser.parseString(line).getAsJsonObject();
                         ScryfallCardParser.parseBoosterLegalCard(card)
-                                .ifPresent(data -> buckets.get(data.rarity()).add(data));
+                                .ifPresent(faces -> buckets.get(faces.front().rarity()).add(faces));
                     } catch (JsonSyntaxException | IllegalStateException e) {
                         // Skip malformed lines rather than aborting the whole pass.
                     }
@@ -78,14 +79,16 @@ public final class CardPoolBuilder {
         return writePoolFile(poolFile, buckets, total);
     }
 
-    private static boolean writePoolFile(Path poolFile, Map<MagicCardData.Rarity, List<MagicCardData>> buckets, int total) {
+    private static boolean writePoolFile(Path poolFile, Map<MagicCardData.Rarity, List<MagicCardFaces>> buckets, int total) {
         JsonObject root = new JsonObject();
         for (MagicCardData.Rarity rarity : MagicCardData.Rarity.values()) {
             JsonArray array = new JsonArray();
-            for (MagicCardData card : buckets.get(rarity)) {
+            for (MagicCardFaces card : buckets.get(rarity)) {
                 JsonObject entry = new JsonObject();
-                entry.addProperty("name", card.cardName());
-                entry.addProperty("text", card.cardText());
+                entry.add("front", writeFace(card.front()));
+                if (card.isDoubleFaced()) {
+                    entry.add("back", writeFace(card.back()));
+                }
                 array.add(entry);
             }
             root.add(rarity.getSerializedName(), array);
@@ -116,5 +119,29 @@ public final class CardPoolBuilder {
                 buckets.get(MagicCardData.Rarity.RARE).size(),
                 buckets.get(MagicCardData.Rarity.MYTHIC_RARE).size());
         return true;
+    }
+
+    private static JsonObject writeFace(MagicCardData face) {
+        JsonObject entry = new JsonObject();
+        entry.addProperty("name", face.cardName());
+        entry.addProperty("text", face.cardText());
+        entry.addProperty("mana_cost", face.manaCost());
+        entry.addProperty("type", face.typeLine());
+
+        JsonArray colors = new JsonArray();
+        face.colors().forEach(color -> colors.add(color.getSerializedName()));
+        entry.add("colors", colors);
+
+        JsonArray keywords = new JsonArray();
+        face.keywords().forEach(keywords::add);
+        entry.add("keywords", keywords);
+
+        face.power().ifPresent(power -> entry.addProperty("power", power));
+        face.toughness().ifPresent(toughness -> entry.addProperty("toughness", toughness));
+        face.loyalty().ifPresent(loyalty -> entry.addProperty("loyalty", loyalty));
+        face.defense().ifPresent(defense -> entry.addProperty("defense", defense));
+        face.setId().ifPresent(setId -> entry.addProperty("set_id", setId.toString()));
+
+        return entry;
     }
 }

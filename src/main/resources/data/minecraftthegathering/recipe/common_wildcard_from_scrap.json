@@ -1,0 +1,34 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "minecraftthegathering:common_scrap"
+    },
+    {
+      "item": "minecraftthegathering:common_scrap"
+    },
+    {
+      "item": "minecraftthegathering:common_scrap"
+    },
+    {
+      "item": "minecraftthegathering:common_scrap"
+    },
+    {
+      "item": "minecraftthegathering:common_scrap"
+    },
+    {
+      "item": "minecraftthegathering:common_scrap"
+    },
+    {
+      "item": "minecraftthegathering:common_scrap"
+    },
+    {
+      "item": "minecraftthegathering:common_scrap"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "minecraftthegathering:common_wildcard"
+  }
+}

@@ -1,14 +1,25 @@
 {
   "itemGroup.minecraftthegathering": "Minecraft: The Gathering",
-  "block.minecraftthegathering.test_block": "Test Block",
-  "item.minecraftthegathering.test_item": "Test Item",
+  "block.minecraftthegathering.card_shredder": "Card Shredder",
   "item.minecraftthegathering.magic_card_item": "Magic Card",
   "item.minecraftthegathering.booster_pack_item": "Booster Pack",
   "item.minecraftthegathering.opened_booster_pack_item": "Opened Booster Pack",
+  "item.minecraftthegathering.magic_card_item.face_down": "Face-down Card",
+
+  "item.minecraftthegathering.common_scrap": "Common Scrap",
+  "item.minecraftthegathering.uncommon_scrap": "Uncommon Scrap",
+  "item.minecraftthegathering.rare_scrap": "Rare Scrap",
+  "item.minecraftthegathering.mythic_rare_scrap": "Mythic Rare Scrap",
+  "item.minecraftthegathering.common_wildcard": "Common Wildcard",
+  "item.minecraftthegathering.uncommon_wildcard": "Uncommon Wildcard",
+  "item.minecraftthegathering.rare_wildcard": "Rare Wildcard",
+  "item.minecraftthegathering.mythic_rare_wildcard": "Mythic Rare Wildcard",
 
   "container.minecraftthegathering.booster_pack": "Booster Pack",
 
   "tooltip.minecraftthegathering.magic_card_item.no_data": "Use to obtain a random Magic Card",
+  "tooltip.minecraftthegathering.magic_card_item.loyalty": "Loyalty: %s",
+  "tooltip.minecraftthegathering.magic_card_item.defense": "Defense: %s",
 
   "rarity.minecraftthegathering.common": "Common",
   "rarity.minecraftthegathering.uncommon": "Uncommon",

@@ -8,8 +8,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.google.gson.JsonElement;
@@ -19,6 +21,7 @@ import com.google.gson.JsonSyntaxException;
 
 import com.fabpharos.minecraftthegathering.MinecraftTheGathering;
 import com.fabpharos.minecraftthegathering.item.MagicCardData;
+import com.fabpharos.minecraftthegathering.item.MagicCardFaces;
 
 /**
  * The local pool of Magic Cards, loaded once from the compact file {@link CardPoolBuilder} produces and
@@ -30,8 +33,8 @@ import com.fabpharos.minecraftthegathering.item.MagicCardData;
  * mutated in place.
  */
 public final class MagicCardPool {
-    private static volatile Map<MagicCardData.Rarity, List<MagicCardData>> buckets = Map.of();
-    private static volatile List<MagicCardData> all = List.of();
+    private static volatile Map<MagicCardData.Rarity, List<MagicCardFaces>> buckets = Map.of();
+    private static volatile List<MagicCardFaces> all = List.of();
 
     private MagicCardPool() {
     }
@@ -50,17 +53,14 @@ public final class MagicCardPool {
             return false;
         }
 
-        Map<MagicCardData.Rarity, List<MagicCardData>> newBuckets = new EnumMap<>(MagicCardData.Rarity.class);
-        List<MagicCardData> newAll = new ArrayList<>();
+        Map<MagicCardData.Rarity, List<MagicCardFaces>> newBuckets = new EnumMap<>(MagicCardData.Rarity.class);
+        List<MagicCardFaces> newAll = new ArrayList<>();
 
         for (MagicCardData.Rarity rarity : MagicCardData.Rarity.values()) {
-            List<MagicCardData> list = new ArrayList<>();
+            List<MagicCardFaces> list = new ArrayList<>();
             if (root.has(rarity.getSerializedName())) {
                 for (JsonElement element : root.getAsJsonArray(rarity.getSerializedName())) {
-                    JsonObject entry = element.getAsJsonObject();
-                    String name = entry.get("name").getAsString();
-                    String text = entry.get("text").getAsString();
-                    list.add(new MagicCardData(name, text, rarity));
+                    list.add(readCard(element.getAsJsonObject(), rarity));
                 }
             }
 
@@ -81,15 +81,102 @@ public final class MagicCardPool {
         return isLoaded();
     }
 
+    private static MagicCardFaces readCard(JsonObject entry, MagicCardData.Rarity rarity) {
+        MagicCardData front = readFace(entry.getAsJsonObject("front"), rarity);
+        MagicCardData back = entry.has("back") ? readFace(entry.getAsJsonObject("back"), rarity) : MagicCardData.BLANK;
+        return MagicCardFaces.revealed(front, back);
+    }
+
+    private static MagicCardData readFace(JsonObject entry, MagicCardData.Rarity rarity) {
+        List<MagicCardData.Color> colors = new ArrayList<>();
+        if (entry.has("colors")) {
+            for (JsonElement colorElement : entry.getAsJsonArray("colors")) {
+                String serializedName = colorElement.getAsString();
+                for (MagicCardData.Color color : MagicCardData.Color.values()) {
+                    if (color.getSerializedName().equals(serializedName)) {
+                        colors.add(color);
+                        break;
+                    }
+                }
+            }
+        }
+
+        List<String> keywords = new ArrayList<>();
+        if (entry.has("keywords")) {
+            for (JsonElement keywordElement : entry.getAsJsonArray("keywords")) {
+                keywords.add(keywordElement.getAsString());
+            }
+        }
+
+        return new MagicCardData(
+                entry.get("name").getAsString(),
+                entry.get("text").getAsString(),
+                rarity,
+                colors,
+                entry.has("mana_cost") ? entry.get("mana_cost").getAsString() : "",
+                entry.has("type") ? entry.get("type").getAsString() : "",
+                entry.has("power") ? Optional.of(entry.get("power").getAsInt()) : Optional.empty(),
+                entry.has("toughness") ? Optional.of(entry.get("toughness").getAsInt()) : Optional.empty(),
+                entry.has("loyalty") ? Optional.of(entry.get("loyalty").getAsInt()) : Optional.empty(),
+                entry.has("defense") ? Optional.of(entry.get("defense").getAsInt()) : Optional.empty(),
+                keywords,
+                entry.has("set_id") ? Optional.of(UUID.fromString(entry.get("set_id").getAsString())) : Optional.empty());
+    }
+
     /** A uniformly random card from the whole pool (all rarities), matching their true relative frequency. */
-    public static Optional<MagicCardData> randomCard() {
-        List<MagicCardData> pool = all;
+    public static Optional<MagicCardFaces> randomCard() {
+        List<MagicCardFaces> pool = all;
         return pool.isEmpty() ? Optional.empty() : Optional.of(pool.get(ThreadLocalRandom.current().nextInt(pool.size())));
     }
 
     /** A uniformly random card of exactly the given rarity. */
-    public static Optional<MagicCardData> randomCard(MagicCardData.Rarity rarity) {
-        List<MagicCardData> pool = buckets.getOrDefault(rarity, List.of());
+    public static Optional<MagicCardFaces> randomCard(MagicCardData.Rarity rarity) {
+        List<MagicCardFaces> pool = buckets.getOrDefault(rarity, List.of());
         return pool.isEmpty() ? Optional.empty() : Optional.of(pool.get(ThreadLocalRandom.current().nextInt(pool.size())));
+    }
+
+    /**
+     * A uniformly random card of exactly the given rarity, restricted to a specific set. An empty
+     * {@code setId} means no restriction (same as {@link #randomCard(MagicCardData.Rarity)}).
+     */
+    public static Optional<MagicCardFaces> randomCard(MagicCardData.Rarity rarity, Optional<UUID> setId) {
+        if (setId.isEmpty()) {
+            return randomCard(rarity);
+        }
+
+        List<MagicCardFaces> matches = buckets.getOrDefault(rarity, List.of()).stream()
+                .filter(card -> card.front().setId().equals(setId))
+                .toList();
+        return matches.isEmpty() ? Optional.empty() : Optional.of(matches.get(ThreadLocalRandom.current().nextInt(matches.size())));
+    }
+
+    /** A uniformly random card whose front face's type line contains {@code typeKeyword} (e.g. "creature"), case-insensitive. */
+    public static Optional<MagicCardFaces> randomCardOfType(String typeKeyword) {
+        String needle = typeKeyword.toLowerCase(Locale.ROOT);
+        List<MagicCardFaces> matches = all.stream()
+                .filter(card -> card.front().typeLine().toLowerCase(Locale.ROOT).contains(needle))
+                .toList();
+        return matches.isEmpty() ? Optional.empty() : Optional.of(matches.get(ThreadLocalRandom.current().nextInt(matches.size())));
+    }
+
+    /**
+     * The single best fuzzy match for {@code query} against every card's front-face name in the pool, or
+     * empty if the pool holds nothing that even loosely resembles it. Exact/prefix/substring matches
+     * always win over a fuzzy (subsequence) match; ties otherwise go to whichever card is encountered first.
+     */
+    public static Optional<MagicCardFaces> findByName(String query) {
+        String normalizedQuery = query.toLowerCase(Locale.ROOT);
+        MagicCardFaces best = null;
+        int bestScore = -1;
+
+        for (MagicCardFaces card : all) {
+            int score = FuzzyMatch.score(normalizedQuery, card.front().cardName().toLowerCase(Locale.ROOT));
+            if (score > bestScore) {
+                bestScore = score;
+                best = card;
+            }
+        }
+
+        return Optional.ofNullable(best);
     }
 }
