@@ -4,30 +4,31 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
+import com.fabpharos.minecraftthegathering.block.CardShredderBlock;
+import com.fabpharos.minecraftthegathering.block.CardShredderBlockEntity;
+import com.fabpharos.minecraftthegathering.command.ModCommands;
 import com.fabpharos.minecraftthegathering.inventory.BoosterPackMenu;
+import com.fabpharos.minecraftthegathering.inventory.CardShredderMenu;
 import com.fabpharos.minecraftthegathering.item.BoosterPackItem;
-import com.fabpharos.minecraftthegathering.item.MagicCardData;
+import com.fabpharos.minecraftthegathering.item.BoosterPackSet;
+import com.fabpharos.minecraftthegathering.item.MagicCardFaces;
 import com.fabpharos.minecraftthegathering.item.MagicCardItem;
 import com.fabpharos.minecraftthegathering.item.OpenedBoosterPackItem;
 import com.fabpharos.minecraftthegathering.scryfall.ScryfallBulkDataService;
-import com.mojang.brigadier.Command;
-import com.mojang.brigadier.context.CommandContext;
+import com.fabpharos.minecraftthegathering.scryfall.ScryfallSetService;
 
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.flag.FeatureFlags;
-import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.api.distmarker.Dist;
@@ -38,7 +39,6 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
@@ -63,23 +63,31 @@ public class MinecraftTheGathering {
     public static final DeferredRegister.DataComponents DATA_COMPONENT_TYPES = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, MODID);
     // Create a Deferred Register to hold MenuTypes which will all be registered under the "minecraftthegathering" namespace
     public static final DeferredRegister<MenuType<?>> MENU_TYPES = DeferredRegister.create(Registries.MENU, MODID);
+    // Create a Deferred Register to hold BlockEntityTypes which will all be registered under the "minecraftthegathering" namespace
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, MODID);
 
-    // The data a Magic Card stores about itself: name, rules text, and rarity
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<MagicCardData>> MAGIC_CARD_DATA = DATA_COMPONENT_TYPES.registerComponentType(
-            "magic_card_data", builder -> builder.persistent(MagicCardData.CODEC));
+    // The data a Magic Card stores about itself: its front face, its back face, and which is showing (see MagicCardFaces)
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<MagicCardFaces>> MAGIC_CARD_DATA = DATA_COMPONENT_TYPES.registerComponentType(
+            "magic_card_data", builder -> builder.persistent(MagicCardFaces.CODEC));
+
+    // The (optional) Magic set a Booster Pack is themed to (see BoosterPackSet). Absent means "any set".
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<BoosterPackSet>> BOOSTER_PACK_SET = DATA_COMPONENT_TYPES.registerComponentType(
+            "booster_pack_set", builder -> builder.persistent(BoosterPackSet.CODEC));
 
     // The menu backing a Booster Pack's GUI (see BoosterPackMenu)
     public static final DeferredHolder<MenuType<?>, MenuType<BoosterPackMenu>> BOOSTER_PACK_MENU = MENU_TYPES.register(
             "booster_pack_menu", () -> new MenuType<>(BoosterPackMenu::new, FeatureFlags.VANILLA_SET));
 
-    // Creates a new Block with the id "minecraftthegathering:test_block", combining the namespace and path
-    public static final DeferredBlock<Block> TEST_BLOCK = BLOCKS.registerSimpleBlock("test_block", BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
-    // Creates a new BlockItem with the id "minecraftthegathering:test_block", combining the namespace and path
-    public static final DeferredItem<BlockItem> TEST_BLOCK_ITEM = ITEMS.registerSimpleBlockItem("test_block", TEST_BLOCK);
+    // The menu backing a Card Shredder's GUI (see CardShredderMenu)
+    public static final DeferredHolder<MenuType<?>, MenuType<CardShredderMenu>> CARD_SHREDDER_MENU = MENU_TYPES.register(
+            "card_shredder_menu", () -> new MenuType<>(CardShredderMenu::new, FeatureFlags.VANILLA_SET));
 
-    // Creates a new food item with the id "minecraftthegathering:test_item", nutrition 1 and saturation 2
-    public static final DeferredItem<Item> TEST_ITEM = ITEMS.registerSimpleItem("test_item", new Item.Properties().food(new FoodProperties.Builder()
-            .alwaysEdible().nutrition(1).saturationModifier(2f).build()));
+    // A machine that shreds Magic Cards into rarity-matched Scrap, then upgrades Scrap into Wildcards (see CardShredderBlockEntity).
+    public static final DeferredBlock<CardShredderBlock> CARD_SHREDDER_BLOCK = BLOCKS.register(
+            "card_shredder", () -> new CardShredderBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.5F)));
+    public static final DeferredItem<BlockItem> CARD_SHREDDER_BLOCK_ITEM = ITEMS.registerSimpleBlockItem("card_shredder", CARD_SHREDDER_BLOCK);
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CardShredderBlockEntity>> CARD_SHREDDER_BLOCK_ENTITY = BLOCK_ENTITY_TYPES.register(
+            "card_shredder", () -> BlockEntityType.Builder.of(CardShredderBlockEntity::new, CARD_SHREDDER_BLOCK.get()).build(null));
 
     // A Magic: The Gathering card. Stores its name/text/rarity via MAGIC_CARD_DATA (see MagicCardItem).
     public static final DeferredItem<MagicCardItem> MAGIC_CARD_ITEM = ITEMS.registerItem(
@@ -93,16 +101,35 @@ public class MinecraftTheGathering {
     public static final DeferredItem<OpenedBoosterPackItem> OPENED_BOOSTER_PACK_ITEM = ITEMS.registerItem(
             "opened_booster_pack_item", OpenedBoosterPackItem::new, new Item.Properties().stacksTo(1));
 
-    // Creates a creative tab with the id "minecraftthegathering:test_tab" for the test item, that is placed after the combat tab
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TEST_TAB = CREATIVE_MODE_TABS.register("test_tab", () -> CreativeModeTab.builder()
+    // Raw material a Card Shredder produces from a Magic Card of the matching rarity; 8 of one combine into its Wildcard.
+    public static final DeferredItem<Item> COMMON_SCRAP_ITEM = ITEMS.registerSimpleItem("common_scrap");
+    public static final DeferredItem<Item> UNCOMMON_SCRAP_ITEM = ITEMS.registerSimpleItem("uncommon_scrap");
+    public static final DeferredItem<Item> RARE_SCRAP_ITEM = ITEMS.registerSimpleItem("rare_scrap");
+    public static final DeferredItem<Item> MYTHIC_RARE_SCRAP_ITEM = ITEMS.registerSimpleItem("mythic_rare_scrap");
+
+    // Made from 8 Scrap of the matching rarity, either by hand (see data/.../recipe) or by a Card Shredder.
+    public static final DeferredItem<Item> COMMON_WILDCARD_ITEM = ITEMS.registerSimpleItem("common_wildcard");
+    public static final DeferredItem<Item> UNCOMMON_WILDCARD_ITEM = ITEMS.registerSimpleItem("uncommon_wildcard");
+    public static final DeferredItem<Item> RARE_WILDCARD_ITEM = ITEMS.registerSimpleItem("rare_wildcard");
+    public static final DeferredItem<Item> MYTHIC_RARE_WILDCARD_ITEM = ITEMS.registerSimpleItem("mythic_rare_wildcard");
+
+    // Creates a creative tab with the id "minecraftthegathering:items" for this mod's items, that is placed after the combat tab
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> ITEMS_TAB = CREATIVE_MODE_TABS.register("items", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.minecraftthegathering")) //The language key for the title of your CreativeModeTab
             .withTabsBefore(CreativeModeTabs.COMBAT)
-            .icon(() -> TEST_ITEM.get().getDefaultInstance())
+            .icon(() -> MAGIC_CARD_ITEM.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
-                output.accept(TEST_ITEM.get());// Add the test item to the tab. For your own tabs, this method is preferred over the event
-                output.accept(TEST_BLOCK_ITEM.get());// Add the test block to the tab
                 output.accept(MAGIC_CARD_ITEM.get());
                 output.accept(BOOSTER_PACK_ITEM.get());
+                output.accept(CARD_SHREDDER_BLOCK_ITEM.get());
+                output.accept(COMMON_SCRAP_ITEM.get());
+                output.accept(UNCOMMON_SCRAP_ITEM.get());
+                output.accept(RARE_SCRAP_ITEM.get());
+                output.accept(MYTHIC_RARE_SCRAP_ITEM.get());
+                output.accept(COMMON_WILDCARD_ITEM.get());
+                output.accept(UNCOMMON_WILDCARD_ITEM.get());
+                output.accept(RARE_WILDCARD_ITEM.get());
+                output.accept(MYTHIC_RARE_WILDCARD_ITEM.get());
             }).build());
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
@@ -121,14 +148,13 @@ public class MinecraftTheGathering {
         DATA_COMPONENT_TYPES.register(modEventBus);
         // Register the Deferred Register to the mod event bus so menu types get registered
         MENU_TYPES.register(modEventBus);
+        // Register the Deferred Register to the mod event bus so block entity types get registered
+        BLOCK_ENTITY_TYPES.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in.
         // Note that this is necessary if and only if we want *this* class (MinecraftTheGathering) to respond directly to events.
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this);
-
-        // Register the item to a creative tab
-        modEventBus.addListener(this::addCreative);
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
@@ -147,13 +173,6 @@ public class MinecraftTheGathering {
         Config.ITEM_STRINGS.get().forEach((item) -> LOGGER.info("ITEM >> {}", item));
     }
 
-    // Add the test block item to the building blocks tab
-    private void addCreative(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS) {
-            event.accept(TEST_BLOCK_ITEM);
-        }
-    }
-
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
@@ -161,33 +180,11 @@ public class MinecraftTheGathering {
         LOGGER.info("HELLO from server starting");
 
         ScryfallBulkDataService.ensureCardDataReady(event.getServer());
+        ScryfallSetService.ensureSetDataReady(event.getServer());
     }
 
     @SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal(MODID)
-                .then(Commands.literal("downloadcarddata")
-                        .requires(source -> source.hasPermission(2))
-                        .executes(this::executeDownloadCardData)));
-    }
-
-    // Manually (re)downloads the Scryfall bulk card data, regardless of whether it already exists.
-    private int executeDownloadCardData(CommandContext<CommandSourceStack> context) {
-        CommandSourceStack source = context.getSource();
-        if (ScryfallBulkDataService.isDownloadInProgress()) {
-            source.sendFailure(Component.literal("A Scryfall card data download is already in progress."));
-            return 0;
-        }
-
-        source.sendSuccess(() -> Component.literal("Downloading Magic: The Gathering card data from Scryfall..."), true);
-        ScryfallBulkDataService.downloadNow(source.getServer(), success -> {
-            if (success) {
-                source.sendSuccess(() -> Component.literal("Scryfall card data downloaded successfully."), true);
-            } else {
-                source.sendFailure(Component.literal("Failed to download Scryfall card data. Check the server log for details."));
-            }
-        });
-
-        return Command.SINGLE_SUCCESS;
+        ModCommands.register(event);
     }
 }

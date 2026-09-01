@@ -2,5 +2,11 @@
   "parent": "minecraft:item/generated",
   "textures": {
     "layer0": "minecraftthegathering:item/magic_card_item"
-  }
+  },
+  "overrides": [
+    {
+      "predicate": { "custom_model_data": 1 },
+      "model": "minecraftthegathering:item/magic_card_item_overlay"
+    }
+  ]
 }

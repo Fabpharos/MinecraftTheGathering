@@ -6,7 +6,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "minecraftthegathering:test_block"
+          "name": "minecraftthegathering:card_shredder"
         }
       ]
     }
